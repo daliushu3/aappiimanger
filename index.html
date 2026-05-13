@@ -1,0 +1,1110 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>密钥管理器</title>
+    <style>
+        :root {
+            --bg: #f7f7f5;
+            --card-bg: #ffffff;
+            --text: #1a1a1a;
+            --text-secondary: #6b6b6b;
+            --text-tertiary: #999999;
+            --border: #e8e8e6;
+            --accent: #3b5ccc;
+            --accent-hover: #2f4ab0;
+            --accent-light: #eef1fb;
+            --danger: #d94a4a;
+            --danger-hover: #c13a3a;
+            --danger-light: #fef2f2;
+            --success: #2d9d5a;
+            --success-light: #edfaf2;
+            --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.04);
+            --shadow-md: 0 4px 16px rgba(0, 0, 0, 0.08);
+            --shadow-lg: 0 12px 40px rgba(0, 0, 0, 0.12);
+            --radius-sm: 8px;
+            --radius: 12px;
+            --radius-lg: 16px;
+            --font-mono: 'SF Mono', 'Cascadia Code', 'Consolas', 'Monaco', 'Menlo', monospace;
+            --transition: 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif;
+            background-color: var(--bg);
+            color: var(--text);
+            min-height: 100vh;
+            line-height: 1.5;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+
+        .container {
+            max-width: 720px;
+            margin: 0 auto;
+            padding: 32px 20px 60px;
+        }
+
+        /* Header */
+        .header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 28px;
+            flex-wrap: wrap;
+            gap: 12px;
+        }
+
+        .header-left {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .header-right {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+        }
+
+        .logo-icon {
+            width: 36px;
+            height: 36px;
+            background: var(--accent);
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+        }
+
+        .logo-icon svg {
+            width: 18px;
+            height: 18px;
+            stroke: white;
+            fill: none;
+            stroke-width: 2;
+        }
+
+        .title {
+            font-size: 22px;
+            font-weight: 700;
+            letter-spacing: -0.3px;
+            color: var(--text);
+        }
+
+        .subtitle {
+            font-size: 12px;
+            color: var(--text-tertiary);
+            font-weight: 400;
+            margin-top: -1px;
+        }
+
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            padding: 10px 18px;
+            border-radius: 10px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            border: none;
+            transition: all var(--transition);
+            white-space: nowrap;
+            font-family: inherit;
+            letter-spacing: -0.1px;
+            user-select: none;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        .btn:active {
+            transform: scale(0.97);
+        }
+
+        .btn-primary {
+            background: var(--accent);
+            color: #fff;
+        }
+        .btn-primary:hover {
+            background: var(--accent-hover);
+            box-shadow: 0 2px 8px rgba(59, 92, 204, 0.3);
+        }
+
+        .btn-outline {
+            background: var(--card-bg);
+            color: var(--text-secondary);
+            border: 1.5px solid var(--border);
+            padding: 10px 14px;
+        }
+        .btn-outline:hover {
+            border-color: #c8c8c6;
+            background: #fafaf8;
+            color: var(--text);
+        }
+
+        /* 隐藏文件输入框 */
+        #importInput {
+            display: none;
+        }
+
+        .btn-ghost {
+            background: transparent;
+            color: var(--text-secondary);
+            padding: 6px 10px;
+            border-radius: 8px;
+            font-weight: 500;
+            font-size: 13px;
+        }
+        .btn-ghost:hover {
+            background: #f0f0ee;
+            color: var(--text);
+        }
+
+        .btn-sm {
+            padding: 6px 10px;
+            font-size: 12px;
+            border-radius: 7px;
+            gap: 4px;
+            font-weight: 500;
+        }
+
+        .btn-icon {
+            width: 34px;
+            height: 34px;
+            padding: 0;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 8px;
+            background: transparent;
+            border: none;
+            cursor: pointer;
+            color: var(--text-secondary);
+            transition: all var(--transition);
+            flex-shrink: 0;
+            -webkit-tap-highlight-color: transparent;
+        }
+        .btn-icon:hover {
+            background: #f0f0ee;
+            color: var(--text);
+        }
+        .btn-icon:active {
+            transform: scale(0.93);
+            background: #e8e8e6;
+        }
+        .btn-icon.danger:hover {
+            background: var(--danger-light);
+            color: var(--danger);
+        }
+        .btn-icon.confirming {
+            background: var(--danger-light);
+            color: var(--danger);
+            animation: pulse-danger 0.8s ease-in-out infinite;
+        }
+
+        @keyframes pulse-danger {
+            0%, 100% { box-shadow: 0 0 0 0 rgba(217, 74, 74, 0.25); }
+            50% { box-shadow: 0 0 0 8px rgba(217, 74, 74, 0); }
+        }
+
+        /* Search */
+        .search-wrap {
+            position: relative;
+            margin-bottom: 20px;
+        }
+
+        .search-input {
+            width: 100%;
+            padding: 11px 16px 11px 40px;
+            border: 1.5px solid var(--border);
+            border-radius: 11px;
+            font-size: 14px;
+            font-family: inherit;
+            background: var(--card-bg);
+            transition: all var(--transition);
+            color: var(--text);
+            outline: none;
+            letter-spacing: -0.1px;
+        }
+        .search-input::placeholder {
+            color: var(--text-tertiary);
+        }
+        .search-input:focus {
+            border-color: var(--accent);
+            box-shadow: 0 0 0 3px rgba(59, 92, 204, 0.08);
+        }
+
+        .search-icon {
+            position: absolute;
+            left: 13px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--text-tertiary);
+            pointer-events: none;
+            width: 16px;
+            height: 16px;
+        }
+
+        /* Stats */
+        .stats {
+            font-size: 12px;
+            color: var(--text-tertiary);
+            margin-bottom: 14px;
+            padding-left: 2px;
+            letter-spacing: -0.1px;
+        }
+
+        /* Key list */
+        .key-list {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        /* Card */
+        .key-card {
+            background: var(--card-bg);
+            border: 1.5px solid var(--border);
+            border-radius: var(--radius);
+            padding: 16px 18px;
+            transition: all var(--transition);
+            box-shadow: var(--shadow-sm);
+            position: relative;
+        }
+        .key-card:hover {
+            box-shadow: var(--shadow-md);
+            border-color: #d8d8d6;
+        }
+
+        .key-card-top {
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+
+        .key-card-info {
+            flex: 1;
+            min-width: 140px;
+        }
+
+        .key-name {
+            font-weight: 650;
+            font-size: 15px;
+            color: var(--text);
+            letter-spacing: -0.2px;
+            word-break: break-word;
+            line-height: 1.3;
+        }
+
+        .key-url-row {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            margin-top: 4px;
+            flex-wrap: wrap;
+        }
+
+        .key-url {
+            font-size: 12px;
+            color: var(--text-secondary);
+            font-family: var(--font-mono);
+            word-break: break-all;
+            line-height: 1.4;
+            text-decoration: none;
+            transition: color var(--transition);
+            cursor: pointer;
+            max-width: 100%;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            display: inline-block;
+            max-width: 360px;
+        }
+        .key-url:hover {
+            color: var(--accent);
+            text-decoration: underline;
+        }
+        .key-url.empty {
+            color: var(--text-tertiary);
+            font-style: italic;
+            cursor: default;
+            font-family: inherit;
+            font-size: 11px;
+        }
+
+        .key-card-actions {
+            display: flex;
+            align-items: center;
+            gap: 2px;
+            flex-shrink: 0;
+            flex-wrap: wrap;
+        }
+
+        /* Key secret row */
+        .key-secret-row {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-top: 10px;
+            background: #f9f9f7;
+            border-radius: 8px;
+            padding: 10px 12px;
+            flex-wrap: wrap;
+        }
+
+        .key-secret-text {
+            font-family: var(--font-mono);
+            font-size: 13px;
+            flex: 1;
+            min-width: 100px;
+            word-break: break-all;
+            letter-spacing: 0.5px;
+            color: var(--text);
+            line-height: 1.4;
+            user-select: text;
+        }
+        .key-secret-text.masked {
+            letter-spacing: 4px;
+            color: var(--text-tertiary);
+            user-select: none;
+            font-size: 16px;
+            transform: translateY(1px);
+        }
+
+        .divider-dot {
+            width: 3px;
+            height: 3px;
+            border-radius: 50%;
+            background: var(--text-tertiary);
+            flex-shrink: 0;
+            opacity: 0.4;
+        }
+
+        /* Toast */
+        .toast {
+            position: fixed;
+            bottom: 32px;
+            left: 50%;
+            transform: translateX(-50%) translateY(100px);
+            background: #1a1a1a;
+            color: #fff;
+            padding: 10px 20px;
+            border-radius: 20px;
+            font-size: 13px;
+            font-weight: 500;
+            pointer-events: none;
+            opacity: 0;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            z-index: 1000;
+            letter-spacing: -0.1px;
+            white-space: nowrap;
+        }
+        .toast.show {
+            opacity: 1;
+            transform: translateX(-50%) translateY(0);
+        }
+        .toast.success {
+            background: #1a3a2a;
+            color: #b8f0c8;
+        }
+
+        /* Empty state */
+        .empty-state {
+            text-align: center;
+            padding: 50px 20px 40px;
+            color: var(--text-tertiary);
+        }
+        .empty-state-icon {
+            width: 56px;
+            height: 56px;
+            margin: 0 auto 16px;
+            background: #f0f0ee;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .empty-state-icon svg {
+            width: 26px;
+            height: 26px;
+            stroke: #bbb;
+            fill: none;
+            stroke-width: 1.8;
+        }
+        .empty-state h3 {
+            font-size: 16px;
+            font-weight: 600;
+            color: var(--text-secondary);
+            margin-bottom: 4px;
+            letter-spacing: -0.2px;
+        }
+        .empty-state p {
+            font-size: 13px;
+            color: var(--text-tertiary);
+            letter-spacing: -0.1px;
+        }
+
+        /* Modal */
+        .modal-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.35);
+            z-index: 100;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.25s ease;
+            backdrop-filter: blur(4px);
+            -webkit-backdrop-filter: blur(4px);
+        }
+        .modal-overlay.active {
+            opacity: 1;
+            pointer-events: auto;
+        }
+
+        .modal {
+            background: var(--card-bg);
+            border-radius: var(--radius-lg);
+            padding: 24px 22px 20px;
+            width: 100%;
+            max-width: 440px;
+            box-shadow: var(--shadow-lg);
+            transform: translateY(20px) scale(0.97);
+            transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative;
+        }
+        .modal-overlay.active .modal {
+            transform: translateY(0) scale(1);
+        }
+
+        .modal-title {
+            font-size: 17px;
+            font-weight: 700;
+            margin-bottom: 18px;
+            letter-spacing: -0.2px;
+            color: var(--text);
+        }
+
+        .form-group {
+            margin-bottom: 14px;
+        }
+        .form-label {
+            display: block;
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--text-secondary);
+            margin-bottom: 5px;
+            letter-spacing: -0.1px;
+            text-transform: uppercase;
+            letter-spacing: 0.3px;
+        }
+        .form-label .optional {
+            font-weight: 400;
+            color: var(--text-tertiary);
+            text-transform: none;
+            letter-spacing: -0.1px;
+            font-size: 11px;
+        }
+        .form-input {
+            width: 100%;
+            padding: 10px 14px;
+            border: 1.5px solid var(--border);
+            border-radius: 9px;
+            font-size: 14px;
+            font-family: inherit;
+            transition: all var(--transition);
+            background: #fafaf8;
+            color: var(--text);
+            outline: none;
+            letter-spacing: -0.1px;
+        }
+        .form-input:focus {
+            border-color: var(--accent);
+            box-shadow: 0 0 0 3px rgba(59, 92, 204, 0.07);
+            background: #fff;
+        }
+        .form-input.mono {
+            font-family: var(--font-mono);
+            font-size: 13px;
+            letter-spacing: 0.3px;
+        }
+
+        .form-input-wrap {
+            position: relative;
+        }
+        .form-input-wrap .toggle-visibility {
+            position: absolute;
+            right: 8px;
+            top: 50%;
+            transform: translateY(-50%);
+            background: none;
+            border: none;
+            cursor: pointer;
+            padding: 6px;
+            border-radius: 6px;
+            color: var(--text-tertiary);
+            transition: all var(--transition);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            -webkit-tap-highlight-color: transparent;
+        }
+        .form-input-wrap .toggle-visibility:hover {
+            color: var(--text);
+            background: #e8e8e6;
+        }
+
+        .modal-actions {
+            display: flex;
+            gap: 8px;
+            justify-content: flex-end;
+            margin-top: 20px;
+        }
+
+        /* Responsive */
+        @media (max-width: 600px) {
+            .container { padding: 20px 14px 40px; }
+            .title { font-size: 20px; }
+            .header-right { width: 100%; justify-content: space-between; }
+            .header-right .btn { flex: 1; padding: 10px 8px; font-size: 13px; }
+            .key-card { padding: 14px 14px; }
+            .key-secret-text { font-size: 12px; }
+            .key-url { max-width: 200px; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <div class="header">
+            <div class="header-left">
+                <div class="logo-icon">
+                    <svg viewBox="0 0 24 24">
+                        <rect x="4" y="6" width="16" height="12" rx="2" stroke-linecap="round" stroke-linejoin="round"/>
+                        <circle cx="12" cy="12" r="2" fill="white" stroke="none"/>
+                        <path d="M12 10v4M10 12h4" stroke="white" stroke-width="1.5" stroke-linecap="round"/>
+                    </svg>
+                </div>
+                <div>
+                    <h1 class="title">密钥管理器</h1>
+                    <p class="subtitle">数据仅保存在本地浏览器</p>
+                </div>
+            </div>
+            <div class="header-right">
+                <!-- 导入导出按钮 -->
+                <button class="btn btn-outline" onclick="exportData()" title="将所有密钥导出为 JSON 文件">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v4a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>
+                    </svg>
+                    导出
+                </button>
+                <button class="btn btn-outline" onclick="document.getElementById('importInput').click()" title="从 JSON 文件导入密钥">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v4a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/>
+                    </svg>
+                    导入
+                </button>
+                <input type="file" id="importInput" accept=".json" onchange="importData(event)">
+                
+                <button class="btn btn-primary" onclick="openModal()" aria-label="添加密钥">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
+                        <line x1="12" y1="5" x2="12" y2="19"/>
+                        <line x1="5" y1="12" x2="19" y2="12"/>
+                    </svg>
+                    添加
+                </button>
+            </div>
+        </div>
+
+        <!-- Search -->
+        <div class="search-wrap">
+            <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+                <circle cx="11" cy="11" r="8"/>
+                <line x1="21" y1="21" x2="16.65" y2="16.65"/>
+            </svg>
+            <input
+            type="text"
+            class="search-input"
+            placeholder="搜索密钥名称或 URL..."
+            id="searchInput"
+            oninput="renderKeyList()"
+            autocomplete="off"
+            >
+        </div>
+
+        <!-- Stats -->
+        <div class="stats" id="statsBar"></div>
+
+        <!-- Key List -->
+        <div class="key-list" id="keyList"></div>
+
+        <!-- Empty State -->
+        <div class="empty-state" id="emptyState" style="display:none;">
+            <div class="empty-state-icon">
+                <svg viewBox="0 0 24 24">
+                    <rect x="3" y="6" width="18" height="12" rx="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    <circle cx="8.5" cy="12" r="1.5" fill="#bbb" stroke="none"/>
+                    <line x1="8.5" y1="12" x2="15.5" y2="12" stroke="#bbb" stroke-width="2" stroke-linecap="round"/>
+                </svg>
+            </div>
+            <h3>还没有保存任何密钥</h3>
+            <p>点击上方按钮添加你的第一个 API 密钥</p>
+        </div>
+    </div>
+
+    <!-- Toast -->
+    <div class="toast" id="toast"></div>
+
+    <!-- Modal -->
+    <div class="modal-overlay" id="modalOverlay" onclick="closeModalOutside(event)">
+        <div class="modal" onclick="event.stopPropagation()">
+            <h2 class="modal-title" id="modalTitle">添加密钥</h2>
+            <div class="form-group">
+                <label class="form-label">名称 <span style="color:#d94a4a;">*</span></label>
+                <input type="text" class="form-input" id="inputName" placeholder="例如：OpenAI、Claude" autocomplete="off">
+            </div>
+            <div class="form-group">
+                <label class="form-label">URL <span class="optional">（可选）</span></label>
+                <input type="url" class="form-input mono" id="inputUrl" placeholder="https://api.example.com" autocomplete="off">
+            </div>
+            <div class="form-group">
+                <label class="form-label">API 密钥 <span style="color:#d94a4a;">*</span></label>
+                <div class="form-input-wrap">
+                    <input type="password" class="form-input mono" id="inputKey" placeholder="sk-xxxxxxxx" autocomplete="off">
+                    <button type="button" class="toggle-visibility" id="toggleModalVisibility" onclick="toggleModalKeyVisibility()" title="显示/隐藏密钥" tabindex="-1">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" id="eyeIconModal">
+                            <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+                            <circle cx="12" cy="12" r="3"/>
+                        </svg>
+                    </button>
+                </div>
+            </div>
+            <div class="modal-actions">
+                <button class="btn btn-outline" onclick="closeModal()">取消</button>
+                <button class="btn btn-primary" onclick="saveKey()" id="saveBtn">保存</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        (function() {
+            const STORAGE_KEY = 'apikey_manager_data_v2';
+            let keys = [];
+            let editingId = null;
+            let deleteConfirmTimer = null;
+            let deleteConfirmId = null;
+
+            // Load data
+            function loadData() {
+                try {
+                    const raw = localStorage.getItem(STORAGE_KEY);
+                    keys = raw ? JSON.parse(raw) : [];
+                } catch (e) {
+                    keys = [];
+                }
+            }
+
+            // Save data
+            function saveData() {
+                try {
+                    localStorage.setItem(STORAGE_KEY, JSON.stringify(keys));
+                } catch (e) {
+                    showToast('存储空间不足，请清理一些密钥', false);
+                }
+            }
+
+            // --- 新增：导出功能 ---
+            window.exportData = function() {
+                if (keys.length === 0) {
+                    showToast('没有可导出的数据', false);
+                    return;
+                }
+                const dataStr = JSON.stringify(keys, null, 2);
+                const blob = new Blob([dataStr], { type: 'application/json' });
+                const url = URL.createObjectURL(blob);
+                const link = document.createElement('a');
+                const date = new Date().toISOString().split('T')[0];
+                link.href = url;
+                link.download = `api_keys_backup_${date}.json`;
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+                URL.revokeObjectURL(url);
+                showToast('数据已导出为 JSON ✓');
+            };
+
+            // --- 新增：导入功能 ---
+            window.importData = function(event) {
+                const file = event.target.files[0];
+                if (!file) return;
+
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    try {
+                        const importedKeys = JSON.parse(e.target.result);
+                        if (!Array.isArray(importedKeys)) throw new Error('格式不正确');
+                        
+                        // 简单验证并合并数据（根据 ID 去重）
+                        const existingIds = new Set(keys.map(k => k.id));
+                        let count = 0;
+                        importedKeys.forEach(item => {
+                            if (item.name && item.key) {
+                                if (!existingIds.has(item.id)) {
+                                    keys.push(item);
+                                    count++;
+                                }
+                            }
+                        });
+
+                        saveData();
+                        renderKeyList();
+                        showToast(`成功导入 ${count} 条新密钥 ✓`);
+                    } catch (err) {
+                        showToast('导入失败：文件格式错误', false);
+                    }
+                    event.target.value = ''; // 清空 input
+                };
+                reader.readAsText(file);
+            };
+
+            // Generate unique ID
+            function generateId() {
+                if (typeof crypto !== 'undefined' && crypto.randomUUID) {
+                    return crypto.randomUUID();
+                }
+                return Date.now().toString(36) + '_' + Math.random().toString(36).slice(2, 9);
+            }
+
+            // Toast
+            function showToast(message, success = true) {
+                const toast = document.getElementById('toast');
+                toast.textContent = message;
+                toast.className = 'toast ' + (success ? 'success' : '');
+                toast.offsetHeight;
+                toast.classList.add('show');
+                clearTimeout(toast._timeout);
+                toast._timeout = setTimeout(() => {
+                    toast.classList.remove('show');
+                }, 2200);
+            }
+
+            // Copy to clipboard
+            async function copyText(text) {
+                try {
+                    if (navigator.clipboard && navigator.clipboard.writeText) {
+                        await navigator.clipboard.writeText(text);
+                    } else {
+                        const ta = document.createElement('textarea');
+                        ta.value = text;
+                        ta.style.position = 'fixed';
+                        ta.style.left = '-9999px';
+                        ta.style.top = '-9999px';
+                        document.body.appendChild(ta);
+                        ta.focus();
+                        ta.select();
+                        document.execCommand('copy');
+                        document.body.removeChild(ta);
+                    }
+                    showToast('已复制到剪贴板 ✓', true);
+                    return true;
+                } catch (e) {
+                    showToast('复制失败', false);
+                    return false;
+                }
+            }
+
+            // Filter keys by search
+            function getFilteredKeys() {
+                const query = document.getElementById('searchInput').value.trim().toLowerCase();
+                if (!query) return keys;
+                return keys.filter(k => {
+                    return k.name.toLowerCase().includes(query) ||
+                        (k.url && k.url.toLowerCase().includes(query));
+                });
+            }
+
+            // Render
+            function renderKeyList() {
+                const listEl = document.getElementById('keyList');
+                const emptyEl = document.getElementById('emptyState');
+                const statsEl = document.getElementById('statsBar');
+                const filtered = getFilteredKeys();
+
+                if (keys.length === 0) {
+                    statsEl.textContent = '';
+                } else if (filtered.length === keys.length) {
+                    statsEl.textContent = `共 ${keys.length} 个密钥`;
+                } else {
+                    statsEl.textContent = `显示 ${filtered.length} / ${keys.length} 个密钥`;
+                }
+
+                if (filtered.length === 0 && keys.length === 0) {
+                    listEl.innerHTML = '';
+                    emptyEl.style.display = 'block';
+                    emptyEl.querySelector('h3').textContent = '还没有保存任何密钥';
+                    statsEl.textContent = '';
+                    return;
+                }
+                if (filtered.length === 0 && keys.length > 0) {
+                    listEl.innerHTML = '';
+                    emptyEl.style.display = 'block';
+                    emptyEl.querySelector('h3').textContent = '没有匹配的密钥';
+                    return;
+                }
+                emptyEl.style.display = 'none';
+
+                listEl.innerHTML = filtered.map(k => {
+                    const maskedId = 'secret_' + k.id;
+                    const isConfirming = deleteConfirmId === k.id;
+                    return `
+                    <div class="key-card" data-id="${k.id}">
+                        <div class="key-card-top">
+                            <div class="key-card-info">
+                                <div class="key-name">${escapeHtml(k.name)}</div>
+                                <div class="key-url-row">
+                                    ${k.url ? `
+                                        <a class="key-url" href="${escapeHtml(k.url)}" target="_blank" rel="noopener noreferrer">${escapeHtml(k.url)}</a>
+                                        <span class="divider-dot"></span>
+                                        <button class="btn-icon btn-sm" onclick="event.stopPropagation();copyKeyUrl('${k.id}')" title="复制 URL">
+                                            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><rect x="9" y="3" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+                                        </button>
+                                    ` : `
+                                        <span class="key-url empty">未设置 URL</span>
+                                    `}
+                                </div>
+                            </div>
+                            <div class="key-card-actions">
+                                <button class="btn-icon" onclick="toggleKeyVisibility('${k.id}')" title="显示/隐藏">
+                                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                                </button>
+                                <button class="btn-icon" onclick="copyKeySecret('${k.id}')" title="复制密钥">
+                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><rect x="9" y="3" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+                                </button>
+                                <button class="btn-icon danger ${isConfirming ? 'confirming' : ''}" onclick="handleDeleteClick('${k.id}')" title="${isConfirming ? '再次点击确认删除' : '删除'}" id="deleteBtn_${k.id}">
+                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>
+                                </button>
+                            </div>
+                        </div>
+                        <div class="key-secret-row">
+                            <span class="key-secret-text masked" id="${maskedId}">••••••••</span>
+                            <button class="btn-icon btn-sm" onclick="toggleKeyVisibility('${k.id}')" style="flex-shrink:0;">
+                                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" id="eyeIconSmall_${k.id}"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                            </button>
+                            <button class="btn-icon btn-sm" onclick="copyKeySecret('${k.id}')" style="flex-shrink:0;">
+                                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><rect x="9" y="3" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+                            </button>
+                        </div>
+                    </div>`;
+                }).join('');
+
+                restoreVisibilityStates();
+            }
+
+            function restoreVisibilityStates() {
+                if (!window._visibleKeys) window._visibleKeys = new Set();
+                window._visibleKeys.forEach(id => applyVisibility(id, true));
+            }
+
+            function applyVisibility(id, visible) {
+                const maskedEl = document.getElementById('secret_' + id);
+                const eyeBtn = document.getElementById('eyeBtn_' + id);
+                const eyeIconSmall = document.getElementById('eyeIconSmall_' + id);
+
+                if (maskedEl) {
+                    if (visible) {
+                        const key = keys.find(k => k.id === id);
+                        if (key) {
+                            maskedEl.textContent = key.key;
+                            maskedEl.classList.remove('masked');
+                        }
+                    } else {
+                        maskedEl.textContent = '••••••••';
+                        maskedEl.classList.add('masked');
+                    }
+                }
+                const eyeOffPath = '<path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94"/><path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19"/><line x1="1" y1="1" x2="23" y2="23"/>';
+                const eyeOnPath = '<path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>';
+
+                const updateSvg = (el) => { if (el) el.innerHTML = visible ? eyeOffPath : eyeOnPath; };
+                updateSvg(eyeBtn?.querySelector('svg'));
+                updateSvg(eyeIconSmall);
+            }
+
+            function escapeHtml(str) {
+                const div = document.createElement('div');
+                div.textContent = str;
+                return div.innerHTML;
+            }
+
+            window.toggleKeyVisibility = function(id) {
+                if (!window._visibleKeys) window._visibleKeys = new Set();
+                const isVisible = window._visibleKeys.has(id);
+                if (isVisible) {
+                    window._visibleKeys.delete(id);
+                    applyVisibility(id, false);
+                } else {
+                    window._visibleKeys.add(id);
+                    applyVisibility(id, true);
+                }
+            };
+
+            window.copyKeySecret = function(id) {
+                const key = keys.find(k => k.id === id);
+                if (key) copyText(key.key);
+            };
+
+            window.copyKeyUrl = function(id) {
+                const key = keys.find(k => k.id === id);
+                if (key && key.url) copyText(key.url);
+            };
+
+            window.handleDeleteClick = function(id) {
+                if (deleteConfirmId === id) {
+                    clearTimeout(deleteConfirmTimer);
+                    deleteConfirmTimer = null;
+                    deleteConfirmId = null;
+                    deleteKey(id);
+                } else {
+                    clearTimeout(deleteConfirmTimer);
+                    deleteConfirmId = id;
+                    deleteConfirmTimer = setTimeout(() => {
+                        deleteConfirmId = null;
+                        renderKeyList();
+                    }, 2500);
+                    renderKeyList();
+                }
+            };
+
+            function deleteKey(id) {
+                keys = keys.filter(k => k.id !== id);
+                if (window._visibleKeys) window._visibleKeys.delete(id);
+                saveData();
+                renderKeyList();
+                showToast('密钥已删除');
+            }
+
+            window.openModal = function(editId = null) {
+                editingId = editId;
+                const overlay = document.getElementById('modalOverlay');
+                const title = document.getElementById('modalTitle');
+                const saveBtn = document.getElementById('saveBtn');
+                const inputName = document.getElementById('inputName');
+                const inputUrl = document.getElementById('inputUrl');
+                const inputKey = document.getElementById('inputKey');
+
+                if (editId) {
+                    const key = keys.find(k => k.id === editId);
+                    if (key) {
+                        title.textContent = '编辑密钥';
+                        saveBtn.textContent = '更新';
+                        inputName.value = key.name;
+                        inputUrl.value = key.url || '';
+                        inputKey.value = key.key;
+                    }
+                } else {
+                    title.textContent = '添加密钥';
+                    saveBtn.textContent = '保存';
+                    inputName.value = '';
+                    inputUrl.value = '';
+                    inputKey.value = '';
+                }
+                inputKey.type = 'password';
+                resetModalEyeIcon();
+                overlay.classList.add('active');
+                setTimeout(() => inputName.focus(), 150);
+            };
+
+            window.closeModal = function() {
+                document.getElementById('modalOverlay').classList.remove('active');
+                editingId = null;
+            };
+
+            window.closeModalOutside = function(event) {
+                if (event.target === document.getElementById('modalOverlay')) closeModal();
+            };
+
+            window.saveKey = function() {
+                const name = document.getElementById('inputName').value.trim();
+                const url = document.getElementById('inputUrl').value.trim();
+                const keyValue = document.getElementById('inputKey').value.trim();
+
+                if (!name || !keyValue) {
+                    showToast('请填写必填项', false);
+                    return;
+                }
+
+                if (editingId) {
+                    const idx = keys.findIndex(k => k.id === editingId);
+                    if (idx !== -1) {
+                        keys[idx].name = name;
+                        keys[idx].url = url;
+                        keys[idx].key = keyValue;
+                    }
+                } else {
+                    keys.push({
+                        id: generateId(),
+                        name: name,
+                        url: url,
+                        key: keyValue,
+                        createdAt: Date.now(),
+                    });
+                }
+
+                saveData();
+                closeModal();
+                renderKeyList();
+                showToast(editingId ? '已更新 ✓' : '已添加 ✓');
+                editingId = null;
+            };
+
+            window.toggleModalKeyVisibility = function() {
+                const inputKey = document.getElementById('inputKey');
+                const eyeIcon = document.getElementById('eyeIconModal');
+                if (inputKey.type === 'password') {
+                    inputKey.type = 'text';
+                    eyeIcon.innerHTML = '<path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94"/><path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19"/><line x1="1" y1="1" x2="23" y2="23"/>';
+                } else {
+                    inputKey.type = 'password';
+                    resetModalEyeIcon();
+                }
+            };
+
+            function resetModalEyeIcon() {
+                document.getElementById('eyeIconModal').innerHTML = '<path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>';
+            }
+
+            // Init
+            loadData();
+            renderKeyList();
+
+            // Keyboard
+            document.addEventListener('keydown', (e) => {
+                if (e.key === 'Escape') closeModal();
+            });
+
+            // Double click to edit
+            document.addEventListener('dblclick', (e) => {
+                const card = e.target.closest('.key-card');
+                if (card && !e.target.closest('button') && !e.target.closest('a')) {
+                    openModal(card.getAttribute('data-id'));
+                }
+            });
+
+        })();
+    </script>
+</body>
+</html>
